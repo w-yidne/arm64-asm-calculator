@@ -38,7 +38,8 @@
 .equ S_run,                   22
 .equ S_systemFontOfSize,      23
 .equ S_init,                  24
-.equ S_COUNT,                 25
+.equ S_setBezelStyle,         25
+.equ S_COUNT,                 26
 
 //------------------------------------------------------------------------------
 // Class indices (into the `classes` table)
@@ -117,10 +118,10 @@ _main:
     bl      _objc_msgSend
     mov     x19, x0                      // window (unallocated init below)
 
-    mov     x9,  #0                      // contentRect (0,0,240,340)
+    mov     x9,  #0                      // contentRect (0,0,380,470)
     mov     x10, #0
-    mov     x11, #240
-    mov     x12, #340
+    mov     x11, #380
+    mov     x12, #470
     bl      _set_rect_regs
     mov     x0, x19
     LDSEL   S_initWithContentRect
@@ -151,9 +152,9 @@ _main:
     LDSEL   S_alloc
     bl      _objc_msgSend
     mov     x25, x0
-    mov     x9,  #20                     // frame (20, 280, 200, 44)
-    mov     x10, #280
-    mov     x11, #200
+    mov     x9,  #20                     // display frame (20, 410, 340, 44)
+    mov     x10, #410
+    mov     x11, #340
     mov     x12, #44
     bl      _set_rect_regs
     mov     x0, x25
@@ -196,15 +197,20 @@ _main:
     ldr     x2, [x2]
     bl      _objc_msgSend
 
-    // --- button grid --------------------------------------------------------
+    // --- clock-face buttons -------------------------------------------------
+    // Each btnspec entry is 48 bytes: {title, tag, x, y, w, h}. Positions are
+    // precomputed (digits ringed around the centre, operators clustered in the
+    // middle), so the loop just reads the frame straight from the table.
     LEA     x21, g_calcObj               // reuse: load calcObj into x21
     ldr     x21, [x21]
     LEA     x24, btnspec
     mov     x23, #0
 .Lbtn:
-    add     x9, x24, x23, lsl #4         // &btnspec[i]  (16 bytes/entry)
-    ldr     x26, [x9]                    // title C-string
-    ldr     x27, [x9, #8]               // tag
+    mov     x9,  #48                     // &btnspec[i]  (48 bytes/entry)
+    mul     x9,  x23, x9
+    add     x28, x24, x9                 // x28 = entry ptr (survives msgSend)
+    ldr     x26, [x28]                   // title C-string
+    ldr     x27, [x28, #8]              // tag
 
     mov     x0, x26                      // NSString from title
     bl      _nsstring
@@ -219,20 +225,18 @@ _main:
     bl      _objc_msgSend
     mov     x26, x0                      // x26 = button
 
-    and     x9,  x23, #3                 // col = i & 3
-    lsr     x10, x23, #2                 // row = i >> 2  (0 = top)
-    mov     x11, #55
-    mul     x9,  x9,  x11
-    add     x9,  x9,  #15                // x = 15 + col*55
-    mov     x12, #3
-    sub     x10, x12, x10                // flip: Cocoa origin is bottom-left
-    mul     x10, x10, x11
-    add     x10, x10, #15                // y = 15 + (3-row)*55
-    mov     x11, #50                     // w
-    mov     x12, #50                     // h
+    ldr     x9,  [x28, #16]             // x  (from table)
+    ldr     x10, [x28, #24]            // y
+    ldr     x11, [x28, #32]            // w
+    ldr     x12, [x28, #40]            // h
     bl      _set_rect_regs
     mov     x0, x26                      // setFrame:
     LDSEL   S_setFrame
+    bl      _objc_msgSend
+
+    mov     x0, x26                      // setBezelStyle: Circular(7) -> round
+    LDSEL   S_setBezelStyle
+    mov     x2, #7
     bl      _objc_msgSend
 
     mov     x0, x26                      // setTag:
@@ -670,6 +674,7 @@ sn21: .asciz "activateIgnoringOtherApps:"
 sn22: .asciz "run"
 sn23: .asciz "systemFontOfSize:"
 sn24: .asciz "init"
+sn25: .asciz "setBezelStyle:"
 
 // class names (order MUST match the C_* indices)
 cn0: .asciz "NSApplication"
@@ -689,28 +694,33 @@ selnames:
     .quad sn0,  sn1,  sn2,  sn3,  sn4,  sn5,  sn6,  sn7
     .quad sn8,  sn9,  sn10, sn11, sn12, sn13, sn14, sn15
     .quad sn16, sn17, sn18, sn19, sn20, sn21, sn22, sn23
-    .quad sn24
+    .quad sn24, sn25
 clsnames:
     .quad cn0, cn1, cn2, cn3, cn4, cn5, cn6, cn7
 
-// button grid: {title, tag}, laid out left-to-right, top-to-bottom
+// Clock-face layout. Each entry: {title, tag, x, y, w, h}.
+// Digits ring a centre of (190,205) at radius 140 (58x58), clockwise from top.
+// Operators cluster in the middle (52x52): / top, + bottom, * left, - right,
+// = dead centre, C on the top-left diagonal.
 btnspec:
-    .quad b7, 7
-    .quad b8, 8
-    .quad b9, 9
-    .quad bDiv, 13
-    .quad b4, 4
-    .quad b5, 5
-    .quad b6, 6
-    .quad bMul, 12
-    .quad b1, 1
-    .quad b2, 2
-    .quad b3, 3
-    .quad bSub, 11
-    .quad bClr, 15
-    .quad b0, 0
-    .quad bEq, 14
-    .quad bAdd, 10
+    // digits 1..9,0 around the ring
+    .quad b1, 1, 161, 316, 58, 58
+    .quad b2, 2, 243, 289, 58, 58
+    .quad b3, 3, 294, 219, 58, 58
+    .quad b4, 4, 294, 133, 58, 58
+    .quad b5, 5, 243,  63, 58, 58
+    .quad b6, 6, 161,  36, 58, 58
+    .quad b7, 7,  79,  63, 58, 58
+    .quad b8, 8,  28, 133, 58, 58
+    .quad b9, 9,  28, 219, 58, 58
+    .quad b0, 0,  79, 289, 58, 58
+    // operators in the centre
+    .quad bDiv, 13, 164, 235, 52, 52    // /  (top)
+    .quad bAdd, 10, 164, 123, 52, 52    // +  (bottom)
+    .quad bMul, 12, 108, 179, 52, 52    // *  (left)
+    .quad bSub, 11, 220, 179, 52, 52    // -  (right)
+    .quad bEq,  14, 164, 179, 52, 52    // =  (centre)
+    .quad bClr, 15, 110, 233, 52, 52    // C  (top-left diagonal)
 
 //==============================================================================
 // Writable state

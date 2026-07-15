@@ -24,18 +24,28 @@ make run        # build and launch the GUI app
 
 ## `calc_gui` — the GUI app
 
-A 240×340 window with a display field and a 4×4 button grid:
+A **clock-face** layout: the ten digits ring the outside like the hours on a
+clock, the operators cluster in the middle, and a display bar sits across the
+top. Buttons use the circular bezel style, so they read as round clock keys.
 
 ```
-        ┌───────────────┐
-        │            0  │   ← display (NSTextField)
-        ├───┬───┬───┬───┤
-        │ 7 │ 8 │ 9 │ / │
-        │ 4 │ 5 │ 6 │ * │
-        │ 1 │ 2 │ 3 │ - │
-        │ C │ 0 │ = │ + │
-        └───┴───┴───┴───┘
+   ┌──────────────────────────────┐
+   │                          0   │ ← display
+   │              1               │
+   │       0             2        │
+   │                              │
+   │    9        ÷        3       │
+   │          C  =                │
+   │    8     ×     −    4        │
+   │             +                │
+   │       7             5        │
+   │              6               │
+   └──────────────────────────────┘
 ```
+
+(The digits sit at evenly-spaced angles around a centre of (190, 205) at
+radius 140; the operators are clustered at the middle — `÷` top, `+` bottom,
+`×` left, `−` right, `=` dead centre, `C` on the top-left diagonal.)
 
 Click digits and an operator, then `=`. `C` clears. Integer arithmetic;
 `/` truncates; negative results are shown with a leading `-`.
