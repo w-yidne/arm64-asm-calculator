@@ -1,4 +1,4 @@
-# assembly-proj — calculators in AArch64 assembly
+# arm64-asm-calculator — calculators in AArch64 assembly
 
 Two integer calculators written in raw **ARM64 (AArch64) assembly** for macOS on
 Apple Silicon:
@@ -11,6 +11,9 @@ Both are hand-written assembly. No C, no Swift.
 ## Build & run
 
 ```sh
+git clone https://github.com/w-yidne/arm64-asm-calculator.git
+cd arm64-asm-calculator
+
 make            # build both
 make run        # build and launch the GUI app
 ./calc_gui      # windowed calculator
