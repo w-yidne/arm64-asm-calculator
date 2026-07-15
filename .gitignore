@@ -1,0 +1,10 @@
+# compiled binaries (built with `make`)
+/calc_gui
+/calculator
+
+# object files / debug bundles
+*.o
+*.dSYM/
+
+# macOS
+.DS_Store
